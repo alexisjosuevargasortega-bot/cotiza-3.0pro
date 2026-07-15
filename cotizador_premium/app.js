@@ -50,9 +50,9 @@ const dom = {
   serviciosBio: document.getElementById('servicios-bio'),
   ivaBio: document.getElementById('iva-bio'),
   totalBio: document.getElementById('total-bio'),
-  productividadInnovadorDiv: document.querySelector('#table-innovador').closest('.table-container').nextElementSibling.querySelector('.productividad-container'),
+  productividadInnovadorDiv: document.getElementById('productividad-innovador-container'),
   productividadInnovadorSpan: document.getElementById('productividad-innovador'),
-  productividadBioDiv: document.querySelector('#table-bio').closest('.table-container').nextElementSibling.querySelector('.productividad-container'),
+  productividadBioDiv: document.getElementById('productividad-bio-container'),
   productividadBioSpan: document.getElementById('productividad-bio'),
 
   btnPdfAll: document.getElementById('btn-pdf-all'),
