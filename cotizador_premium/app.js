@@ -489,7 +489,7 @@ function renderCart() {
 }
 
 // --- PDF GENERATION ---
-function generatePDF(type) {
+function generatePDF(type, showProductividad = false) {
   let isInnovador = type === 'innovador' || type === 'esquema'; // Esquema defaults to Innovador prices
   
   let tipoLabel = '';
@@ -499,11 +499,11 @@ function generatePDF(type) {
   if (type === 'innovador') {
     tipoLabel = 'Patente';
     tipoColor = '#0A497B';
-    filenameSufix = 'Patente';
+    filenameSufix = showProductividad ? 'Patente_Productividad' : 'Patente';
   } else if (type === 'bio') {
     tipoLabel = 'Biocomparable';
     tipoColor = '#27ae60';
-    filenameSufix = 'Biocomparable';
+    filenameSufix = showProductividad ? 'Biocomparable_Productividad' : 'Biocomparable';
   } else if (type === 'esquema') {
     tipoLabel = 'Esquema de Tratamiento';
     tipoColor = '#8e44ad';
@@ -739,7 +739,7 @@ function generatePDF(type) {
           <td style="text-align:left; padding:2px 10px; color:#555;">${formatCurrency(subTotalServ)}</td>
           <td colspan="4"></td>
         </tr>
-        ${prodTotal > 0 ? `
+        ${prodTotal > 0 && showProductividad ? `
         <tr>
           <td colspan="6" style="border-top: 1px solid #cbd5e1; padding-top: 8px; margin-top: 5px;"></td>
         </tr>
@@ -795,20 +795,34 @@ function generatePDF(type) {
 }
 
 dom.btnPdfAll.addEventListener('click', async () => {
-  // Download 2 sequentially
   dom.btnPdfAll.disabled = true;
-  dom.btnPdfAll.textContent = 'Generando Patente...';
-  await generatePDF('innovador');
-  
-  setTimeout(async () => {
-    dom.btnPdfAll.textContent = 'Generando Biocomparable...';
-    await generatePDF('bio');
-    
-    setTimeout(() => {
-      dom.btnPdfAll.textContent = 'Descargar PDFs (Patente y Biocomparable)';
-      dom.btnPdfAll.disabled = false;
-    }, 1500);
-  }, 1500);
+
+  // 1. Patente (sin productividad)
+  dom.btnPdfAll.textContent = '📄 Generando Patente...';
+  await generatePDF('innovador', false);
+
+  await new Promise(r => setTimeout(r, 1500));
+
+  // 2. Biocomparable (sin productividad)
+  dom.btnPdfAll.textContent = '📄 Generando Biocomparable...';
+  await generatePDF('bio', false);
+
+  await new Promise(r => setTimeout(r, 1500));
+
+  // 3. Patente con Productividad
+  dom.btnPdfAll.textContent = '📊 Generando Patente + Productividad...';
+  await generatePDF('innovador', true);
+
+  await new Promise(r => setTimeout(r, 1500));
+
+  // 4. Biocomparable con Productividad
+  dom.btnPdfAll.textContent = '📊 Generando Biocomparable + Productividad...';
+  await generatePDF('bio', true);
+
+  await new Promise(r => setTimeout(r, 1500));
+
+  dom.btnPdfAll.textContent = 'Descargar PDFs (Patente y Biocomparable)';
+  dom.btnPdfAll.disabled = false;
 });
 
 // Initial load
