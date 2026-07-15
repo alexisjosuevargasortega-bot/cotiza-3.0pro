@@ -456,7 +456,7 @@ function renderCart() {
 
   function tipoCalifica(tipo) {
     if (!tipo) return false;
-    const t = tipo.toUpperCase();
+    const t = tipo.trim().toUpperCase();
     return t === 'QUIMIOTERAPIA' || t === 'INMUNOTERAPIA' || t.includes('HEMATOL');
   }
 
@@ -560,7 +560,7 @@ function generatePDF(type, showProductividad = false) {
   }
   function tipoCalificaPDF(tipo) {
     if (!tipo) return false;
-    const t = tipo.toUpperCase();
+    const t = tipo.trim().toUpperCase();
     return t === 'QUIMIOTERAPIA' || t === 'INMUNOTERAPIA' || t.includes('HEMATOL');
   }
   const esBolsillo = (vals.modalidad === 'BOLSILLO' || vals.modalidad === 'Bolsillo' || vals.modalidad === '');
