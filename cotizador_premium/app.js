@@ -288,7 +288,7 @@ function renderCart() {
   let prodBio = 0;
   
   const modSelect = document.getElementById('modalidadPago');
-  const modalidadActiva = modSelect.options[modSelect.selectedIndex].text; // 'BOLSILLO' or 'ASEGURADORA'
+  const esBolsillo = (state.modalidad === 'BOLSILLO' || state.modalidad === 'Bolsillo' || state.modalidad === '');
 
   state.items.forEach(item => {
     // ---- Medicamento from catalog (old type) ----
@@ -465,24 +465,24 @@ function renderCart() {
       // items con innovador/bio directos del catálogo
       const targetI = item.innovador;
       if (targetI && tipoCalifica(targetI['TIPO DE USO'])) {
-        const prodI = modalidadActiva === 'BOLSILLO' ? (targetI.PRODUCTIVIDAD_BOLSILLO || 0) : (targetI.PRODUCTIVIDAD_ASEGURADORA || 0);
+        const prodI = esBolsillo ? (targetI.PRODUCTIVIDAD_BOLSILLO || 0) : (targetI.PRODUCTIVIDAD_ASEGURADORA || 0);
         prodInnovador += prodI * item.cant;
       }
       const targetB = item.bio;
       if (targetB && tipoCalifica(targetB['TIPO DE USO'])) {
-        const prodB = modalidadActiva === 'BOLSILLO' ? (targetB.PRODUCTIVIDAD_BOLSILLO || 0) : (targetB.PRODUCTIVIDAD_ASEGURADORA || 0);
+        const prodB = esBolsillo ? (targetB.PRODUCTIVIDAD_BOLSILLO || 0) : (targetB.PRODUCTIVIDAD_ASEGURADORA || 0);
         prodBio += prodB * item.cant;
       }
     } else if (item.type === 'esq_med') {
       // items de esquema: buscar en catálogo por marca para obtener productividad
       const catI = item.patente ? findCatalogByMarca(item.patente.marca) : null;
       if (catI && tipoCalifica(catI['TIPO DE USO'])) {
-        const prodI = modalidadActiva === 'BOLSILLO' ? (catI.PRODUCTIVIDAD_BOLSILLO || 0) : (catI.PRODUCTIVIDAD_ASEGURADORA || 0);
+        const prodI = esBolsillo ? (catI.PRODUCTIVIDAD_BOLSILLO || 0) : (catI.PRODUCTIVIDAD_ASEGURADORA || 0);
         prodInnovador += prodI * (item.cant * (item.patente.viales || 1));
       }
       const catB = item.bio ? findCatalogByMarca(item.bio.marca) : null;
       if (catB && tipoCalifica(catB['TIPO DE USO'])) {
-        const prodB = modalidadActiva === 'BOLSILLO' ? (catB.PRODUCTIVIDAD_BOLSILLO || 0) : (catB.PRODUCTIVIDAD_ASEGURADORA || 0);
+        const prodB = esBolsillo ? (catB.PRODUCTIVIDAD_BOLSILLO || 0) : (catB.PRODUCTIVIDAD_ASEGURADORA || 0);
         prodBio += prodB * (item.cant * (item.bio.viales || 1));
       }
     }
