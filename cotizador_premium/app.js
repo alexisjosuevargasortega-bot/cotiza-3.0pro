@@ -444,31 +444,46 @@ function renderCart() {
   dom.ivaBio.textContent = formatCurrency(ivaBi);
   dom.totalBio.textContent = formatCurrency(subBio + servBio + ivaBi);
 
-  // Calcular Productividad
+  // ---- Calcular Productividad acumulada ----
+  // Helper: buscar en catálogo por nombre comercial y devolver el registro
+  function findCatalogByMarca(marca) {
+    if (!marca) return null;
+    const marcaL = marca.trim().toLowerCase();
+    return SANARE_DATA.medicamentos.find(m =>
+      m['NOMBRE COMERCIAL'] && m['NOMBRE COMERCIAL'].trim().toLowerCase() === marcaL
+    ) || null;
+  }
+
+  function tipoCalifica(tipo) {
+    if (!tipo) return false;
+    const t = tipo.toUpperCase();
+    return t === 'QUIMIOTERAPIA' || t === 'INMUNOTERAPIA' || t.includes('HEMATOL');
+  }
+
   state.items.forEach(item => {
     if (item.type === 'med') {
+      // items con innovador/bio directos del catálogo
       const targetI = item.innovador;
-      if (targetI && (targetI['TIPO DE USO'] === 'QUIMIOTERAPIA' || targetI['TIPO DE USO'] === 'INMUNOTERAPIA')) {
+      if (targetI && tipoCalifica(targetI['TIPO DE USO'])) {
         const prodI = modalidadActiva === 'BOLSILLO' ? (targetI.PRODUCTIVIDAD_BOLSILLO || 0) : (targetI.PRODUCTIVIDAD_ASEGURADORA || 0);
         prodInnovador += prodI * item.cant;
       }
-
       const targetB = item.bio;
-      if (targetB && (targetB['TIPO DE USO'] === 'QUIMIOTERAPIA' || targetB['TIPO DE USO'] === 'INMUNOTERAPIA')) {
+      if (targetB && tipoCalifica(targetB['TIPO DE USO'])) {
         const prodB = modalidadActiva === 'BOLSILLO' ? (targetB.PRODUCTIVIDAD_BOLSILLO || 0) : (targetB.PRODUCTIVIDAD_ASEGURADORA || 0);
         prodBio += prodB * item.cant;
       }
     } else if (item.type === 'esq_med') {
-      const targetI = item.patente;
-      if (targetI && (targetI['TIPO DE USO'] === 'QUIMIOTERAPIA' || targetI['TIPO DE USO'] === 'INMUNOTERAPIA')) {
-        const prodI = modalidadActiva === 'BOLSILLO' ? (targetI.PRODUCTIVIDAD_BOLSILLO || 0) : (targetI.PRODUCTIVIDAD_ASEGURADORA || 0);
-        prodInnovador += prodI * item.cant;
+      // items de esquema: buscar en catálogo por marca para obtener productividad
+      const catI = item.patente ? findCatalogByMarca(item.patente.marca) : null;
+      if (catI && tipoCalifica(catI['TIPO DE USO'])) {
+        const prodI = modalidadActiva === 'BOLSILLO' ? (catI.PRODUCTIVIDAD_BOLSILLO || 0) : (catI.PRODUCTIVIDAD_ASEGURADORA || 0);
+        prodInnovador += prodI * (item.cant * (item.patente.viales || 1));
       }
-
-      const targetB = item.bio;
-      if (targetB && (targetB['TIPO DE USO'] === 'QUIMIOTERAPIA' || targetB['TIPO DE USO'] === 'INMUNOTERAPIA')) {
-        const prodB = modalidadActiva === 'BOLSILLO' ? (targetB.PRODUCTIVIDAD_BOLSILLO || 0) : (targetB.PRODUCTIVIDAD_ASEGURADORA || 0);
-        prodBio += prodB * item.cant;
+      const catB = item.bio ? findCatalogByMarca(item.bio.marca) : null;
+      if (catB && tipoCalifica(catB['TIPO DE USO'])) {
+        const prodB = modalidadActiva === 'BOLSILLO' ? (catB.PRODUCTIVIDAD_BOLSILLO || 0) : (catB.PRODUCTIVIDAD_ASEGURADORA || 0);
+        prodBio += prodB * (item.cant * (item.bio.viales || 1));
       }
     }
   });
@@ -535,6 +550,21 @@ function generatePDF(type, showProductividad = false) {
   let hasMeds = false;
   let prodTotal = 0;
 
+  // Helper functions for productivity
+  function findCatalogByMarcaPDF(marca) {
+    if (!marca) return null;
+    const marcaL = marca.trim().toLowerCase();
+    return SANARE_DATA.medicamentos.find(m =>
+      m['NOMBRE COMERCIAL'] && m['NOMBRE COMERCIAL'].trim().toLowerCase() === marcaL
+    ) || null;
+  }
+  function tipoCalificaPDF(tipo) {
+    if (!tipo) return false;
+    const t = tipo.toUpperCase();
+    return t === 'QUIMIOTERAPIA' || t === 'INMUNOTERAPIA' || t.includes('HEMATOL');
+  }
+  const esBolsillo = (vals.modalidad === 'BOLSILLO' || vals.modalidad === 'Bolsillo' || vals.modalidad === '');
+
   state.items.forEach(item => {
     if (item.type === 'med') {
       const target = (type === 'bio') ? (item.bio || item.innovador) : (item.innovador || item.bio);
@@ -544,8 +574,8 @@ function generatePDF(type, showProductividad = false) {
       const sub = p * item.cant;
       subTotalMed += sub;
 
-      if (target['TIPO DE USO'] === 'QUIMIOTERAPIA' || target['TIPO DE USO'] === 'INMUNOTERAPIA') {
-        const prod = (vals.modalidad === 'BOLSILLO' || vals.modalidad === 'Bolsillo' || vals.modalidad === '') ? (target.PRODUCTIVIDAD_BOLSILLO || 0) : (target.PRODUCTIVIDAD_ASEGURADORA || 0);
+      if (tipoCalificaPDF(target['TIPO DE USO'])) {
+        const prod = esBolsillo ? (target.PRODUCTIVIDAD_BOLSILLO || 0) : (target.PRODUCTIVIDAD_ASEGURADORA || 0);
         prodTotal += prod * item.cant;
       }
       
@@ -578,9 +608,14 @@ function generatePDF(type, showProductividad = false) {
       const sub = pt * item.cant;
       subTotalMed += sub;
 
-      if (target['TIPO DE USO'] === 'QUIMIOTERAPIA' || target['TIPO DE USO'] === 'INMUNOTERAPIA') {
-        const prod = (vals.modalidad === 'BOLSILLO' || vals.modalidad === 'Bolsillo' || vals.modalidad === '') ? (target.PRODUCTIVIDAD_BOLSILLO || 0) : (target.PRODUCTIVIDAD_ASEGURADORA || 0);
-        prodTotal += prod * item.cant;
+      // Para esq_med buscar en catálogo por marca para obtener productividad
+      const catTarget = (type === 'bio') ?
+        (item.bio ? findCatalogByMarcaPDF(item.bio.marca) : null) :
+        (item.patente ? findCatalogByMarcaPDF(item.patente.marca) : null);
+      if (catTarget && tipoCalificaPDF(catTarget['TIPO DE USO'])) {
+        const prod = esBolsillo ? (catTarget.PRODUCTIVIDAD_BOLSILLO || 0) : (catTarget.PRODUCTIVIDAD_ASEGURADORA || 0);
+        const viales = (type === 'bio') ? (item.bio ? item.bio.viales || 1 : 1) : (item.patente ? item.patente.viales || 1 : 1);
+        prodTotal += prod * item.cant * viales;
       }
 
       const isFallback = (type === 'bio' && !item.bio) || (type !== 'bio' && !item.patente);
